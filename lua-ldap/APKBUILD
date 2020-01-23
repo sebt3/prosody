@@ -48,9 +48,7 @@ check() {
 }
 
 package() {
-	local x=$(dirname $pkgdir)
 	mkdir -p "$pkgdir"
-	mkdir -p "$x/lua5.1-ldap/usr/lib/lua/5.1" "$x/lua5.2-ldap/usr/lib/lua/5.2" "$x/lua5.3-ldap/usr/lib/lua/5.3"
 }
 
 _package() {
@@ -62,10 +60,9 @@ _package() {
 	replaces="lua$lver-lualdap"  # for backward compatibility (v3.5)
 	[ "$lver" = "5.1" ] && replaces="${replaces:-} $pkgname"  # for backward compatibility (<v3.4)
 
-	cd "$builddir-$lver"
-	make DESTDIR="$subpkgdir" \
-		LUA_LIBDIR="$(pkg-config --variable=INSTALL_CMOD lua$lver)" \
-		install
+	cd $builddir-$lver
+	mkdir -p "$subpkgdir/usr/lib/lua/$lver"
+	make DESTDIR="$subpkgdir" LUA_VERSION="$lver" install
 
 	mkdir -p "$rockdir"
 	echo 'rock_manifest = {}' > "$rockdir"/rock_manifest

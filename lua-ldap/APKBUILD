@@ -1,0 +1,74 @@
+# Contributor: Natanael Copa <ncopa@alpinelinux.org>
+# Contributor: Jakub Jirutka <jakub@jirutka.cz>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=lua-ldap
+_pkgname=lualdap
+pkgver=1.2.5
+pkgrel=0
+pkgdesc="Lua binding to LDAP"
+url="https://github.com/lualdap/lualdap"
+arch="all"
+license="MIT"
+depends=""
+makedepends="openldap-dev"
+checkdepends="openldap openldap-back-bdb"
+subpackages=""
+source="$_pkgname-$pkgver.tar.gz::https://github.com/$_pkgname/$_pkgname/archive/v$pkgver.tar.gz"
+builddir="$srcdir/$_pkgname-$pkgver"
+
+_luaversions="5.1 5.2 5.3"
+for _v in $_luaversions; do
+	makedepends="$makedepends lua$_v-dev"
+	subpackages="$subpackages lua$_v-${pkgname#lua-}:_package"
+done
+
+prepare() {
+	default_prepare || return 1
+
+	cd "$builddir"
+	sed -i -e '/LUA_VERSION_NUM/d' config
+
+	local lver; for lver in $_luaversions; do
+		cp -r "$builddir" "$builddir-$lver" || return 1
+	done
+}
+
+build() {
+	local lver; for lver in $_luaversions; do
+		msg "Building for Lua $lver..."
+
+		cd "$builddir-$lver"
+		make CFLAGS="-fPIC -ansi -Wall $(pkg-config --cflags lua$lver)" \
+			OPENLDAP_LIB="-lldap -llber" || return 1
+	done
+}
+
+check() {
+	:
+}
+
+package() {
+	local x=$(dirname $pkgdir)
+	mkdir -p "$pkgdir"
+	mkdir -p "$x/lua5.1-ldap/usr/lib/lua/5.1" "$x/lua5.2-ldap/usr/lib/lua/5.2" "$x/lua5.3-ldap/usr/lib/lua/5.3"
+}
+
+_package() {
+	local lver="${subpkgname:3:3}"
+	local rockdir="$subpkgdir/usr/lib/luarocks/rocks-$lver/$_pkgname/$pkgver-1"
+	pkgdesc="$pkgdesc (for Lua $lver)"
+	depends="lua$lver"
+	install_if="$pkgname=$pkgver-r$pkgrel lua$lver"
+	replaces="lua$lver-lualdap"  # for backward compatibility (v3.5)
+	[ "$lver" = "5.1" ] && replaces="${replaces:-} $pkgname"  # for backward compatibility (<v3.4)
+
+	cd "$builddir-$lver"
+	make DESTDIR="$subpkgdir" \
+		LUA_LIBDIR="$(pkg-config --variable=INSTALL_CMOD lua$lver)" \
+		install
+
+	mkdir -p "$rockdir"
+	echo 'rock_manifest = {}' > "$rockdir"/rock_manifest
+}
+
+sha512sums="4fbd7bcea2e55a3b165a7316e4f6c45aee22506915c4cc204d1b5006adbf95611ebf4558c1ef1511f90d7142571cff37ea24952072dc7ecb13bbbe06aef32e72  lualdap-1.2.5.tar.gz"

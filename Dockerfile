@@ -1,5 +1,6 @@
 FROM alpine:latest as builder
-RUN apk add alpine-sdk build-base openldap-dev lua5.1-dev lua5.2-dev lua5.3-dev openldap openldap-back-bdb \
+RUN sed -i 's/dl-cdn.alpinelinux.org/ftp.halifax.rwth-aachen.de/g' /etc/apk/repositories \
+ && apk add alpine-sdk build-base openldap-dev lua5.1-dev lua5.2-dev lua5.3-dev openldap openldap-back-bdb \
  && adduser -D builder                  \
  && addgroup builder abuild             \
  && mkdir -p /var/cache/distfiles       \
@@ -20,7 +21,8 @@ COPY --from=builder /etc/apk/keys/builder*.rsa.pub /etc/apk/keys/
 COPY --from=builder /tmp/lua*.apk /tmp/
 COPY entrypoint.sh /usr/bin
 
-RUN apk --update --no-progress add openssl lua${LUA_VERSION} libidn lua${LUA_VERSION}-filesystem lua${LUA_VERSION}-expat lua${LUA_VERSION}-socket lua${LUA_VERSION}-sec lua${LUA_VERSION}-lzlib lua${LUA_VERSION}-dbi-sqlite3 lua${LUA_VERSION}-dbi-postgresql lua${LUA_VERSION}-dbi-mysql lua${LUA_VERSION}-bitop lua${LUA_VERSION}-struct /tmp/lua${LUA_VERSION}-ldap*apk openldap-clients \
+RUN sed -i 's/dl-cdn.alpinelinux.org/ftp.halifax.rwth-aachen.de/g' /etc/apk/repositories \
+ && apk --update --no-progress add openssl lua${LUA_VERSION} libidn lua${LUA_VERSION}-filesystem lua${LUA_VERSION}-expat lua${LUA_VERSION}-socket lua${LUA_VERSION}-sec lua${LUA_VERSION}-lzlib lua${LUA_VERSION}-dbi-sqlite3 lua${LUA_VERSION}-dbi-postgresql lua${LUA_VERSION}-dbi-mysql lua${LUA_VERSION}-bitop lua${LUA_VERSION}-struct /tmp/lua${LUA_VERSION}-ldap*apk openldap-clients \
  && apk --update --no-progress add --virtual build-deps autoconf build-base lua${LUA_VERSION}-dev libidn-dev openssl-dev curl linux-headers mercurial \
  && curl -sL https://prosody.im/downloads/source/prosody-${PROSODY_VERSION}.tar.gz|tar -xz \
  && cd prosody-${PROSODY_VERSION} \
